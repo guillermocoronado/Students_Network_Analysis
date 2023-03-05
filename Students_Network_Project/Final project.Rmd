@@ -1,0 +1,222 @@
+---
+title: "Project Assignment"
+author: "Guillermo Coronado"
+date: "13/2/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+#Packages
+library(sna)
+library(network)
+library(foreign)
+library(igraph)
+library(RColorBrewer)
+```
+
+```{r}
+#Charging the data and creating the newtorks
+
+PoliAtt <- read.csv("PoliAtt.csv", sep = ";")
+
+RelativeNet <- read.csv("RelativeNet.csv", sep = ";")
+RelaMat <- as.matrix(RelativeNet)
+RelaNet <- as.network(RelaMat, directed = TRUE)
+RelaGraph <- graph.data.frame(RelaNet)
+
+FriendshipNet <- read.csv("FriendshipNet.csv", sep = ";")
+FriendshipMat <- as.matrix(FriendshipNet)
+Friendship_Net <- as.network(FriendshipMat, directed = TRUE)
+FriendshipGraph <- graph.data.frame(Friendship_Net)
+
+StudyNet <- read.csv("StudyNet.csv", sep = ";")
+StudyMat <- as.matrix(StudyNet)
+Study_Net <- as.network(StudyMat, directed = TRUE)
+StudyGraph <- graph.data.frame(Study_Net)
+```
+
+```{r}
+#Plotting the network
+par(mfrow=c(1,1))
+plot(RelaNet, main="'Relatives Network' - second wave")
+```
+
+```{r}
+#Plotting the network with attributes
+sex <- PoliAtt$Sex
+age <- PoliAtt$Age
+sides <- ifelse(sex==0, 3, ifelse(sex==1, 4, 5))
+colors <- ifelse(age==17, "green", ifelse(age==18, "blue", ifelse(age==19, "brown", ifelse(age==20, "yellow", "gray8"))))
+plot(RelaNet, vertex.col=colors, vertex.cex=1.5, vertex.sides=sides, main="'Relatives network' by students' sex and age")
+
+```
+
+```{r}
+##Calculating network measures
+network.density(RelaNet)
+dyad.census(RelaGraph)
+connectedness(RelaNet)
+total_degree_relatives <- degree(RelaGraph, mode = "total")
+total_degree_relatives
+
+network.density(Friendship_Net)
+dyad.census(FriendshipGraph)
+connectedness(Friendship_Net)
+total_degree_friend <- degree(FriendshipGraph, mode = "total")
+total_degree_friend
+
+network.density(Study_Net)
+dyad.census(StudyGraph)
+connectedness(Study_Net)
+total_degree_study <- degree(StudyGraph, mode = "total")
+total_degree_study
+```
+```{r}
+plot(Friendship_Net)
+plot(Study_Net)
+```
+
+```{r}
+##Social influence model
+#First, we create and index based on the questions from Q1 to Q20. The index goes from 1 to 7, where 1 is totalitarian and 7 is libertarian. In order to do that we have to re code some variables
+
+library(car)
+Q2.r <- car::recode(PoliAtt$Q2, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q4.r <- car::recode(PoliAtt$Q4, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q6.r <- car::recode(PoliAtt$Q6, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q9.r <- car::recode(PoliAtt$Q9, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q11.r <- car::recode(PoliAtt$Q11, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q12.r <- car::recode(PoliAtt$Q12, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q15.r <- car::recode(PoliAtt$Q15, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q17.r <- car::recode(PoliAtt$Q17, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q18.r <- car::recode(PoliAtt$Q18, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+Q20.r <- car::recode(PoliAtt$Q20, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
+PoliAtt$index <- (PoliAtt$Q1 + Q2.r + PoliAtt$Q3 + Q4.r + PoliAtt$Q5 + Q6.r + PoliAtt$Q7 + PoliAtt$Q8 + Q9.r + PoliAtt$Q10 + Q11.r + Q12.r + PoliAtt$Q13 + PoliAtt$Q14 + Q15.r + PoliAtt$Q16 + Q17.r + Q18.r + PoliAtt$Q19 + Q20.r)/20 
+table(PoliAtt$index)
+
+#Now we can build our first model
+FamDiscuss <- PoliAtt$FamDiscuss
+FamForm <- PoliAtt$FamForm
+Sex <- PoliAtt$Sex
+Age <- PoliAtt$Age
+IntPolitics <- PoliAtt$IntPolitics
+IntPolPart <- PoliAtt$IntPolPart
+PolAttitude <- PoliAtt$index
+
+model1 <- lm(PolAttitude ~  FamDiscuss + FamForm + IntPolitics + IntPolPart + Sex + Age)
+summary(model1)
+model2 <- lm(PolAttitude ~ IntPolitics)
+summary(model2)
+
+model3 <- lm(IntPolPart  ~  FamDiscuss + Age)
+summary(model3)
+
+model4 <- lm(IntPolitics ~  FamDiscuss + Sex)
+summary(model4)
+
+
+```
+```{r}
+#Now we add the network measures as independent variables
+Relatives_totaldegree <- vector()
+Friends_totaldegree <- vector()
+Study_totaldegree <- vector()
+
+names <- PoliAtt$Name
+for(i in 1:286){
+  for(j in 1:286){
+    if(V(RelaGraph)$names[i]==Name[j]){
+      Relatives_totaldegree[i]<-total_degree_relatives[j]
+      Friends_totaldegree[i]<-total_degree_friend[j]
+      Study_totaldegree[i]<-total_degree_study[j]
+      break;}
+    else{}
+  }
+}
+
+model5 <- lm(IntPolPart  ~  FamDiscuss + Age + Relatives_totaldegree)
+summary(model5)
+
+```
+```{r}
+##Social selection model
+library(ergm)
+library(coda)
+Friendship.any <- ifelse(FriendshipMat > 0, 1, 0)
+FriendshipGraph.any <-graph.data.frame(Friendship.any)
+FriendshipNet.any <- as.network(Friendship.any, directed = TRUE)
+
+IntPol
+#We build our first model (unconditioned)
+SSModel1 <-ergm(FriendshipNet.any ~ edges, verbose=FALSE)
+summary(SSModel1)
+
+#We build our second model (we add one parameter)
+
+SSModel2 <- ergm(FriendshipNet.any ~ edges + triangles, verbose = FALSE)
+mcmc.diagnostics(SSModel2)
+summary(SSModel2)
+summary(FriendshipNet.any ~ edges + triangles)
+
+invlogit <- function(x) {1/(1+exp(-x))}
+x <- coef(SSModel1)
+invlogit(x)
+
+Sex_vector <- vector()
+Age_vector <- vector()
+
+SSModel2.gof <- gof(SSModel2 ~ espartners)
+plot(SSModel2.gof)
+
+for(i in 1:285){ # this is our set of all network nodes
+        for(j in 1:285){ # this is our set of attribute-containing nodes
+                # for each node in i, we run through all node in j
+                # and compare names
+                if(V(FriendshipGraph.any)$names[i]==Name[j]){
+                        #if we match, we add the attribute to a vector
+                        Sex_vector[i]<-Sex[j]
+                        Age_vector[i]<-Age[j]
+                        # and exit the inner loop for the next i
+                        break;}
+                # if not, we are assigning a missing value
+                # and keep going until we find a matching node
+                else{Sex_vector[i]<-1
+                Age_vector[i]<-19
+                }
+        }
+}
+
+FriendshipGraph.any<-set_vertex_attr(FriendshipGraph.any, 'sex', value=c(Sex_vector))
+FriendGraph.any<-set_vertex_attr(FriendshipGraph.any, 'age', value=c(Age_vector))
+
+SSModel3 <- ergm(FriendshipNet.any ~  edges + absdiff('age') + nodematch('sex'))
+summary(SSModel3)
+mcmc.diagnostics(SSModel3)
+```
+
