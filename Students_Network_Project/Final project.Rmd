@@ -107,37 +107,32 @@ plot(Study_Net)
 #First, we create and index based on the questions from Q1 to Q20. The index goes from 1 to 7, where 1 is totalitarian and 7 is libertarian. In order to do that we have to re code some variables
 
 library(car)
-Q2.r <- car::recode(PoliAtt$Q2, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q4.r <- car::recode(PoliAtt$Q4, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q6.r <- car::recode(PoliAtt$Q6, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q9.r <- car::recode(PoliAtt$Q9, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q11.r <- car::recode(PoliAtt$Q11, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q12.r <- car::recode(PoliAtt$Q12, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q15.r <- car::recode(PoliAtt$Q15, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q17.r <- car::recode(PoliAtt$Q17, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q18.r <- car::recode(PoliAtt$Q18, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-Q20.r <- car::recode(PoliAtt$Q20, '1 = 7; 2 = 6; 3 = 5; 4 = 4;  5 = 3; 6 = 2; 7 = 1')
-PoliAtt$index <- (PoliAtt$Q1 + Q2.r + PoliAtt$Q3 + Q4.r + PoliAtt$Q5 + Q6.r + PoliAtt$Q7 + PoliAtt$Q8 + Q9.r + PoliAtt$Q10 + Q11.r + Q12.r + PoliAtt$Q13 + PoliAtt$Q14 + Q15.r + PoliAtt$Q16 + Q17.r + Q18.r + PoliAtt$Q19 + Q20.r)/20 
+
+recode_question <- function(var) {
+  car::recode(var, '1 = 7; 2 = 6; 3 = 5; 4 = 4; 5 = 3; 6 = 2; 7 = 1')
+}
+
+recode_vars <- c("Q2", "Q4", "Q6", "Q9", "Q11", "Q12", "Q15", "Q17", "Q18", "Q20")
+PoliAtt[recode_vars] <- lapply(PoliAtt[recode_vars], recode_question)
+
+PoliAtt$index <- rowMeans(PoliAtt[c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "Q9", "Q10", 
+                                    "Q11", "Q12", "Q13", "Q14", "Q15", "Q16", "Q17", "Q18", "Q19", "Q20")])
+
 table(PoliAtt$index)
 
-#Now we can build our first model
-FamDiscuss <- PoliAtt$FamDiscuss
-FamForm <- PoliAtt$FamForm
-Sex <- PoliAtt$Sex
-Age <- PoliAtt$Age
-IntPolitics <- PoliAtt$IntPolitics
-IntPolPart <- PoliAtt$IntPolPart
-PolAttitude <- PoliAtt$index
 
-model1 <- lm(PolAttitude ~  FamDiscuss + FamForm + IntPolitics + IntPolPart + Sex + Age)
+#Now we can build our first model
+
+model1 <- lm(PolAttitude ~  FamDiscuss + FamForm + IntPolitics + IntPolPart + Sex + Age, data = PoliAtt)
 summary(model1)
-model2 <- lm(PolAttitude ~ IntPolitics)
+
+model2 <- lm(PolAttitude ~ IntPolitics, data = PoliAtt)
 summary(model2)
 
-model3 <- lm(IntPolPart  ~  FamDiscuss + Age)
+model3 <- lm(IntPolPart  ~  FamDiscuss + Age, data = PoliAtt)
 summary(model3)
 
-model4 <- lm(IntPolitics ~  FamDiscuss + Sex)
+model4 <- lm(IntPolitics ~  FamDiscuss + Sex, data = PoliAtt)
 summary(model4)
 
 
@@ -160,7 +155,7 @@ for(i in 1:286){
   }
 }
 
-model5 <- lm(IntPolPart  ~  FamDiscuss + Age + Relatives_totaldegree)
+model5 <- lm(IntPolPart  ~  FamDiscuss + Age + Relatives_totaldegree, data = PoliAtt)
 summary(model5)
 
 ```
